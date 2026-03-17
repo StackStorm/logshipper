@@ -24,8 +24,7 @@ class Tests(unittest.TestCase):
     def test_drop(self):
         handler = logshipper.filters.prepare_drop(None)
 
-        self.assertEqual(handler({}, None),
-                         logshipper.filters.DROP_MESSAGE)
+        self.assertEqual(handler({}, None), logshipper.filters.DROP_MESSAGE)
 
     def test_match_1(self):
         handler = logshipper.filters.prepare_match("t(.st)")
@@ -35,7 +34,7 @@ class Tests(unittest.TestCase):
 
         self.assertEqual(result, None)
         self.assertEqual(context.match_field, "message")
-        self.assertEqual(context.backreferences, ['test', 'est'])
+        self.assertEqual(context.backreferences, ["test", "est"])
 
         message = {"message": "This is not a match."}
         context = logshipper.context.Context(message, None)
@@ -45,8 +44,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(context.backreferences, [])
 
     def test_match_n(self):
-        handler = logshipper.filters.prepare_match({"message": "(t.st)",
-                                                    "foo": "(?P<boo>b.r)"})
+        handler = logshipper.filters.prepare_match({"message": "(t.st)", "foo": "(?P<boo>b.r)"})
         message = {"message": "This is a test.", "foo": "barbar"}
         context = logshipper.context.Context(message, None)
         result = handler(message, context)
@@ -54,11 +52,10 @@ class Tests(unittest.TestCase):
         self.assertEqual(result, None)
         self.assertEqual(context.match_field, None)
         self.assertEqual(context.backreferences, [])
-        self.assertEqual(message['boo'], 'bar')
+        self.assertEqual(message["boo"], "bar")
 
     def test_extract1(self):
-        handler = logshipper.filters.prepare_extract({"message": "(t.st)",
-                                                      "foo": "(?P<boo>b.r)"})
+        handler = logshipper.filters.prepare_extract({"message": "(t.st)", "foo": "(?P<boo>b.r)"})
         message = {"message": "This is a test.", "foo": "barbar"}
         context = logshipper.context.Context(message, None)
         result = handler(message, context)
@@ -66,9 +63,9 @@ class Tests(unittest.TestCase):
         self.assertEqual(result, None)
         self.assertEqual(context.match_field, None)
         self.assertEqual(context.backreferences, [])
-        self.assertEqual(message['boo'], 'bar')
-        self.assertEqual(message['foo'], 'bar')
-        self.assertEqual(message['message'], 'This is a .')
+        self.assertEqual(message["boo"], "bar")
+        self.assertEqual(message["foo"], "bar")
+        self.assertEqual(message["message"], "This is a .")
 
     def test_extract2(self):
         handler = logshipper.filters.prepare_extract({"message": "(t.st)"})
@@ -92,8 +89,7 @@ class Tests(unittest.TestCase):
         self.assertNotEqual(result, logshipper.filters.SKIP_STEP)
 
     def test_edge2(self):
-        h = logshipper.filters.prepare_edge({"trigger": "{foo}",
-                                             "backlog": 2})
+        h = logshipper.filters.prepare_edge({"trigger": "{foo}", "backlog": 2})
         handler = lambda m: h(m, logshipper.context.Context(m, None))
         result = handler({"foo": "1"})
         self.assertNotEqual(result, logshipper.filters.SKIP_STEP)
@@ -116,22 +112,28 @@ class Tests(unittest.TestCase):
         match_handler(message, context)
         replace_handler(message, context)
 
-        self.assertEqual(message['message'], 'This is a Test.')
+        self.assertEqual(message["message"], "This is a Test.")
 
     def test_set(self):
         handler = logshipper.filters.prepare_set({"baz": "l{1}{foo}r"})
         message = {"foo": "shippe"}
         context = logshipper.context.Context(message, None)
-        context.backreferences = ("", "og",)
+        context.backreferences = (
+            "",
+            "og",
+        )
         result = handler(message, context)
         self.assertEqual(result, None)
-        self.assertEqual(message['baz'], "logshipper")
+        self.assertEqual(message["baz"], "logshipper")
 
     def test_unset(self):
         handler = logshipper.filters.prepare_unset("foo, bar")
         message = {"foo": "shippe", "baz": "yeah"}
         context = logshipper.context.Context(message, None)
-        context.backreferences = ("", "og",)
+        context.backreferences = (
+            "",
+            "og",
+        )
         result = handler(message, context)
         self.assertEqual(result, None)
         self.assertEqual(message, {"baz": "yeah"})
@@ -140,7 +142,10 @@ class Tests(unittest.TestCase):
         handler = logshipper.filters.prepare_unset(["foo", "bar"])
         message = {"foo": "shippe", "baz": "yeah"}
         context = logshipper.context.Context(message, None)
-        context.backreferences = ("", "og",)
+        context.backreferences = (
+            "",
+            "og",
+        )
         result = handler(message, context)
         self.assertEqual(result, None)
         self.assertEqual(message, {"baz": "yeah"})
@@ -155,35 +160,38 @@ class Tests(unittest.TestCase):
 
     @unittest.skip("Travis-ci has some env where the timezone doesn't parse")
     def test_strptime_parse_tz(self):
-        handler = logshipper.filters.prepare_strptime({
-            "field": "foo",
-        })
+        handler = logshipper.filters.prepare_strptime(
+            {
+                "field": "foo",
+            }
+        )
 
         message = {"foo": "Nov 13 01:22:22 CEST"}
         context = logshipper.context.Context(message, None)
         result = handler(message, context)
         self.assertEqual(result, None)
         date = datetime.datetime(2014, 11, 13, 0, 22, 22, 0)
-        self.assertEqual(message['foo'], date)
+        self.assertEqual(message["foo"], date)
 
     def test_strptime_parse(self):
-        handler = logshipper.filters.prepare_strptime({
-            "field": "foo",
-        })
+        handler = logshipper.filters.prepare_strptime(
+            {
+                "field": "foo",
+            }
+        )
 
         message = {"foo": "Nov 13 01:22:22"}
         context = logshipper.context.Context(message, None)
         result = handler(message, context)
         self.assertEqual(result, None)
-        date = datetime.datetime(2014, 11, 13, 1, 22, 22, 0)
-        self.assertEqual(message['foo'], date)
+        current_year = datetime.datetime.now().year
+        date = datetime.datetime(current_year, 11, 13, 1, 22, 22, 0)
+        self.assertEqual(message["foo"], date)
 
     def test_strptime2(self):
-        handler = logshipper.filters.prepare_strptime({
-            "format": "%Y %b %d %H:%M:%S",
-            "field": "foo",
-            "timezone": "Europe/Amsterdam"
-        })
+        handler = logshipper.filters.prepare_strptime(
+            {"format": "%Y %b %d %H:%M:%S", "field": "foo", "timezone": "Europe/Amsterdam"}
+        )
 
         message = {"foo": "2014 Nov 13 01:22:22"}
         context = logshipper.context.Context(message, None)
@@ -193,14 +201,17 @@ class Tests(unittest.TestCase):
         self.assertEqual(message, {"foo": date})
 
     def test_parse_timedelta(self):
-        self.assertEqual(logshipper.filters.parse_timedelta('1d2h  5m '),
-                         datetime.timedelta(days=1, hours=2, minutes=5))
+        self.assertEqual(
+            logshipper.filters.parse_timedelta("1d2h  5m "),
+            datetime.timedelta(days=1, hours=2, minutes=5),
+        )
 
-        self.assertEqual(logshipper.filters.parse_timedelta('1.5d'),
-                         datetime.timedelta(days=1, hours=12))
+        self.assertEqual(
+            logshipper.filters.parse_timedelta("1.5d"), datetime.timedelta(days=1, hours=12)
+        )
 
         with self.assertRaises(ValueError):
-            logshipper.filters.parse_timedelta('1d2h5r')
+            logshipper.filters.parse_timedelta("1d2h5r")
 
     def test_timewindow1(self):
         handler = logshipper.filters.prepare_timewindow("1m")

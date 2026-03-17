@@ -23,8 +23,12 @@ import logshipper.pipeline
 
 
 class TestInput(logshipper.input.BaseInput):
-    testmessage = {"generated": 1, 'message': u'gen1', 'hostname': None,
-                   "timestamp": datetime.datetime.now()}
+    testmessage = {
+        "generated": 1,
+        "message": "gen1",
+        "hostname": None,
+        "timestamp": datetime.datetime.now(),
+    }
 
     def run(self):
         self.emit(dict(self.testmessage))
@@ -35,15 +39,15 @@ def prepare_handler1(params):
 
     def h_counter(message, context):
         c.append(dict(message))
-        message['handler1'] = True
-        message['history'] = list(c)
+        message["handler1"] = True
+        message["history"] = list(c)
 
     h_counter.phase = logshipper.filters.PHASE_MANIPULATE
     return h_counter
 
 
 def prepare_handler2(params):
-    l = lambda message, context: message.update({'handler2': True})
+    l = lambda message, context: message.update({"handler2": True})
     l.phase = logshipper.filters.PHASE_MANIPULATE + 1
     return l
 
@@ -69,29 +73,30 @@ class Tests(unittest.TestCase):
             self.assertEqual(message, TestInput.testmessage)
             result.append(1)
 
-        input_ = logshipper.pipeline.prepare_input(__name__ + ":TestInput", {},
-                                                   handler)
+        input_ = logshipper.pipeline.prepare_input(__name__ + ":TestInput", {}, handler)
         self.assertIsInstance(input_, TestInput)
 
         self.assertEqual(result, [])
         input_.start()
-        eventlet.sleep(.01)
+        eventlet.sleep(0.01)
         self.assertEqual(result, [1])
         input_.stop()
 
     def test_prepare_filter(self):
-        handler = logshipper.pipeline.prepare_step({
-            __name__ + ":prepare_handler1": {},
-            __name__ + ":prepare_handler2": {},
-        })
+        handler = logshipper.pipeline.prepare_step(
+            {
+                __name__ + ":prepare_handler1": {},
+                __name__ + ":prepare_handler2": {},
+            }
+        )
 
         self.assertNotEqual(handler, None)
         self.assertEqual(len(handler), 2)
         message = {}
         handler[0](message, None)
-        self.assertTrue(message['handler1'])
+        self.assertTrue(message["handler1"])
         handler[1](message, None)
-        self.assertTrue(message['handler2'])
+        self.assertTrue(message["handler2"])
 
     def test_pipeline(self):
         pipeline = logshipper.pipeline.Pipeline(None)
@@ -108,16 +113,15 @@ class Tests(unittest.TestCase):
         self.assertEqual(len(pipeline.steps), 2)
 
         pipeline.start()
-        eventlet.sleep(.03)
+        eventlet.sleep(0.03)
 
-        m = pipeline.process({'timestamp': None, 'hostname': None,
-                              'message': u''})
+        m = pipeline.process({"timestamp": None, "hostname": None, "message": ""})
 
         pipeline.stop()
 
-        self.assertEqual(len(m['history']), 2)
-        self.assertIn('generated', m['history'][0])
-        self.assertNotIn('generated', m['history'][1])
+        self.assertEqual(len(m["history"]), 2)
+        self.assertIn("generated", m["history"][0])
+        self.assertNotIn("generated", m["history"][1])
 
     def test_pipeline_drop(self):
         pipeline = logshipper.pipeline.Pipeline(None)
@@ -134,10 +138,9 @@ class Tests(unittest.TestCase):
         self.assertEqual(len(pipeline.steps), 2)
 
         pipeline.start()
-        eventlet.sleep(.03)
+        eventlet.sleep(0.03)
 
-        m = pipeline.process({'timestamp': None, 'hostname': None,
-                              'message': u''})
+        m = pipeline.process({"timestamp": None, "hostname": None, "message": ""})
 
         pipeline.stop()
 
@@ -157,18 +160,15 @@ class Tests(unittest.TestCase):
 
         self.assertEqual(len(pipeline.inputs), 1)
         self.assertEqual(len(pipeline.steps), 2)
-        self.assertEqual(pipeline.steps[0][0].phase,
-                         logshipper.filters.PHASE_MATCH)
-        self.assertEqual(pipeline.steps[0][1].phase,
-                         logshipper.filters.PHASE_MANIPULATE)
+        self.assertEqual(pipeline.steps[0][0].phase, logshipper.filters.PHASE_MATCH)
+        self.assertEqual(pipeline.steps[0][1].phase, logshipper.filters.PHASE_MANIPULATE)
 
         pipeline.start()
-        eventlet.sleep(.03)
+        eventlet.sleep(0.03)
 
-        m = pipeline.process({'timestamp': None, 'hostname': None,
-                              'message': u''})
+        m = pipeline.process({"timestamp": None, "hostname": None, "message": ""})
 
         pipeline.stop()
 
-        self.assertNotIn('handler1', m)
-        self.assertIn('handler2', m)
+        self.assertNotIn("handler1", m)
+        self.assertIn("handler2", m)

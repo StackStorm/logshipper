@@ -22,17 +22,17 @@ import logshipper.context
 class Tests(unittest.TestCase):
     def test_str(self):
         r = logshipper.context.prepare_template("{1}{foo!s:>4}")
-        value = r(["f", "F"], {"foo": '123'})
+        value = r(["f", "F"], {"foo": "123"})
         self.assertEqual(value, "F 123")
 
     def test_str_arrayindex(self):
         r = logshipper.context.prepare_template("{foo[0]}")
-        value = r([], {"foo": ['123']})
+        value = r([], {"foo": ["123"]})
         self.assertEqual(value, "123")
 
     def test_str_dictindex(self):
         r = logshipper.context.prepare_template("{foo[m]}")
-        value = r([], {"foo": {"m": '123'}})
+        value = r([], {"foo": {"m": "123"}})
         self.assertEqual(value, "123")
 
     def test_str_selfref(self):
@@ -47,16 +47,16 @@ class Tests(unittest.TestCase):
 
     def test_dict(self):
         r = logshipper.context.prepare_template({"foo": "{1}{foo!s:>4}"})
-        value = r(["f", "F"], {"foo": '123'})
+        value = r(["f", "F"], {"foo": "123"})
         self.assertEqual(value, {"foo": "F 123"})
 
     def test_list(self):
         r = logshipper.context.prepare_template([1, "{1}{foo!s:>4}"])
-        value = r(["f", "F"], {"foo": '123'})
+        value = r(["f", "F"], {"foo": "123"})
         self.assertEqual(value, [1, "F 123"])
 
     def test_unknowntype(self):
-        class Foo():
+        class Foo:
             pass
 
         with self.assertRaises(TypeError):

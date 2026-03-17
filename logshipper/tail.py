@@ -27,8 +27,9 @@ import logshipper.pyinotify_eventlet_notifier
 LOG = logging.getLogger(__name__)
 
 INOTIFY_FILE_MASK = pyinotify.IN_MODIFY | pyinotify.IN_OPEN
-INOTIFY_DIR_MASK = (pyinotify.IN_CREATE | pyinotify.IN_DELETE |
-                    pyinotify.IN_MOVED_FROM | pyinotify.IN_MOVED_TO)
+INOTIFY_DIR_MASK = (
+    pyinotify.IN_CREATE | pyinotify.IN_DELETE | pyinotify.IN_MOVED_FROM | pyinotify.IN_MOVED_TO
+)
 
 
 class Tail(logshipper.input.BaseInput):
@@ -50,8 +51,7 @@ class Tail(logshipper.input.BaseInput):
     """
 
     class FileTail(object):
-        __slots__ = ['file_descriptor', 'path', 'buffer', 'stat', 'rescan',
-                     'watch_descriptor']
+        __slots__ = ["file_descriptor", "path", "buffer", "stat", "rescan", "watch_descriptor"]
 
         def __init__(self):
             self.buffer = b""
@@ -70,8 +70,7 @@ class Tail(logshipper.input.BaseInput):
         self.tails = {}
         self.dir_watches = {}
 
-        self.notifier = logshipper.pyinotify_eventlet_notifier.Notifier(
-            self.watch_manager)
+        self.notifier = logshipper.pyinotify_eventlet_notifier.Notifier(self.watch_manager)
 
     def _inotify_file(self, event):
         LOG.debug("file notified %r", event)
@@ -108,7 +107,7 @@ class Tail(logshipper.input.BaseInput):
             if not buff:
                 return
 
-            buff = buff.decode('utf8')
+            buff = buff.decode("utf8")
 
             # Append to last buffer
             if tail.buffer:
@@ -121,7 +120,7 @@ class Tail(logshipper.input.BaseInput):
                 lines = lines[:-1]
 
             for line in lines:
-                self.handler({'message': line[:-1]})
+                self.handler({"message": line[:-1]})
 
     def process_tail(self, path, should_seek=False):
         file_stat = os.stat(path)
@@ -135,8 +134,7 @@ class Tail(logshipper.input.BaseInput):
             if fd_stat.st_size > pos:
                 LOG.debug("Something to read")
                 self.read_tail(tail)
-            if (tail.stat.st_size > file_stat.st_size or
-                    tail.stat.st_ino != file_stat.st_ino):
+            if tail.stat.st_size > file_stat.st_size or tail.stat.st_ino != file_stat.st_ino:
                 LOG.info("%s looks rotated. reopening", path)
                 self.close_tail(tail)
                 tail = None
@@ -171,10 +169,10 @@ class Tail(logshipper.input.BaseInput):
                     LOG.debug("Monitoring dir %s", path)
 
                     self.dir_watches[path] = self.watch_manager.add_watch(
-                        path, INOTIFY_DIR_MASK, do_glob=True,
-                        proc_fun=self._inotify_dir)
+                        path, INOTIFY_DIR_MASK, do_glob=True, proc_fun=self._inotify_dir
+                    )
 
-                if '*' not in path and '?' not in path:
+                if "*" not in path and "?" not in path:
                     break
 
     def open_tail(self, path, go_to_end=False):
@@ -186,8 +184,8 @@ class Tail(logshipper.input.BaseInput):
             os.lseek(tail.file_descriptor, 0, os.SEEK_END)
 
         watch_descriptor = self.watch_manager.add_watch(
-            path, INOTIFY_FILE_MASK,
-            proc_fun=self._inotify_file)
+            path, INOTIFY_FILE_MASK, proc_fun=self._inotify_file
+        )
 
         tail.watch_descriptor = watch_descriptor.pop(path)
         return tail
@@ -197,4 +195,4 @@ class Tail(logshipper.input.BaseInput):
         os.close(tail.file_descriptor)
         if tail.buffer:
             LOG.debug("Generating message from tail buffer")
-            self.handler({'message': tail.buffer})
+            self.handler({"message": tail.buffer})

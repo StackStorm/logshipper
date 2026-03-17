@@ -26,7 +26,6 @@ from eventlet.green import time
 import eventlet.tpool
 import six
 
-
 LOG = logging.getLogger(__name__)
 
 
@@ -39,12 +38,12 @@ class BaseInput(object):
         self.handler = handler
 
     def emit(self, message):
-        message.setdefault('timestamp', datetime.datetime.utcnow())
-        message.setdefault('hostname', socket.gethostname())
+        message.setdefault("timestamp", datetime.datetime.utcnow())
+        message.setdefault("hostname", socket.gethostname())
 
-        assert six.PY3 or isinstance(message['message'], six.text_type)
-        assert isinstance(message['timestamp'], datetime.datetime)
-        assert message['timestamp'].tzinfo is None
+        assert six.PY3 or isinstance(message["message"], six.text_type)
+        assert isinstance(message["timestamp"], datetime.datetime)
+        assert message["timestamp"].tzinfo is None
 
         self.handler(message)
 
@@ -98,7 +97,7 @@ class Command(BaseInput):
         - debug:
     """
 
-    def __init__(self, commandline, interval=60, env=None, separator='\n'):
+    def __init__(self, commandline, interval=60, env=None, separator="\n"):
         self.commandline = commandline
         self.interval = int(interval)
         self.env = {"LC_ALL": "C"}
@@ -116,34 +115,43 @@ class Command(BaseInput):
         while self.should_run:
             start_time = time.time()
             if isinstance(self.commandline, six.string_types):
-                self.process = subprocess.Popen(self.commandline,
-                                                close_fds=True,
-                                                env=self.env, shell=True,
-                                                stdin=subprocess.PIPE,
-                                                stdout=subprocess.PIPE,
-                                                stderr=subprocess.PIPE)
+                self.process = subprocess.Popen(
+                    self.commandline,
+                    close_fds=True,
+                    env=self.env,
+                    shell=True,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
             else:
-                self.process = subprocess.Popen(self.commandline,
-                                                close_fds=True, env=self.env,
-                                                stdin=subprocess.PIPE,
-                                                stdout=subprocess.PIPE,
-                                                stderr=subprocess.PIPE)
+                self.process = subprocess.Popen(
+                    self.commandline,
+                    close_fds=True,
+                    env=self.env,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                )
 
             self.process.stdin.close()
 
-            if self.separator == '\n':
+            if self.separator == "\n":
+
                 def process_pipe(pipe):
                     while not pipe.closed:
                         line = pipe.readline()
                         if not line:
                             break
 
-                        line = line.decode('utf8')
-                        self.emit({"message": line.rstrip('\n')})
+                        line = line.decode("utf8")
+                        self.emit({"message": line.rstrip("\n")})
+
             else:
+
                 def process_pipe(pipe):
-                    buf = u""
-                    for chunk in codecs.iterdecode(pipe, 'utf8'):
+                    buf = ""
+                    for chunk in codecs.iterdecode(pipe, "utf8"):
                         buf += chunk
                         messages = buf.split(self.separator)
                         buf = messages[-1]
@@ -178,19 +186,44 @@ class Stdin(BaseInput):
 
         - stdin: {}
     """
+
     def run(self):
         while self.should_run:
             line = eventlet.tpool.execute(sys.stdin.readline)
             self.emit({"message": line.rstrip()})
 
 
-SYSLOG_PRIORITIES = ['emergency', 'alert', 'critical', 'error', 'warning',
-                     'notice', 'informational', 'debug']
+SYSLOG_PRIORITIES = [
+    "emergency",
+    "alert",
+    "critical",
+    "error",
+    "warning",
+    "notice",
+    "informational",
+    "debug",
+]
 SYSLOG_FACILITIES = (
-    ['kern', 'user', 'mail', 'daemon', 'auth', 'syslog', 'lpr', 'news',
-     'uucp', 'cron', 'authpriv', 'ftp', 'ntp', 'audit', 'alert', 'local'] +
-    ['local%i' % i for i in range(8)] +
-    ['unknown%02i' % i for i in range(12)]
+    [
+        "kern",
+        "user",
+        "mail",
+        "daemon",
+        "auth",
+        "syslog",
+        "lpr",
+        "news",
+        "uucp",
+        "cron",
+        "authpriv",
+        "ftp",
+        "ntp",
+        "audit",
+        "alert",
+        "local",
+    ]
+    + ["local%i" % i for i in range(8)]
+    + ["unknown%02i" % i for i in range(12)]
 )
 
 
@@ -222,9 +255,10 @@ class Syslog(BaseInput):
             port: 1514
     """
 
-    rfc3164_matcher = re.compile(r'<(?P<prival>\d{1,3})>')
+    rfc3164_matcher = re.compile(r"<(?P<prival>\d{1,3})>")
 
-    rfc5424_matcher = re.compile(r"""
+    rfc5424_matcher = re.compile(
+        r"""
         <(?P<prival>\d{1,3})>1
         \s
         (?P<timestamp>-|\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?
@@ -240,22 +274,23 @@ class Syslog(BaseInput):
         \s
         (?P<sd>-|\[[^\]]+\])
         \s*
-        """, re.X)  # <134>
+        """,
+        re.X,
+    )  # <134>
 
-    def __init__(self, bind="127.0.0.1", port=514, protocol='auto'):
+    def __init__(self, bind="127.0.0.1", port=514, protocol="auto"):
         self.bind = bind
         self.port = int(port)
         self.server = None
 
-        if protocol == 'rfc5424':
+        if protocol == "rfc5424":
             self.regexes = [Syslog.rfc5424_matcher]
-        elif protocol == 'rfc3164':
+        elif protocol == "rfc3164":
             self.regexes = [Syslog.rfc3164_matcher]
-        elif protocol == 'auto':
+        elif protocol == "auto":
             self.regexes = [Syslog.rfc5424_matcher, Syslog.rfc3164_matcher]
         else:
-            raise ValueError(
-                'protocol must be either rfc3164, rfc5424 or auto')
+            raise ValueError("protocol must be either rfc3164, rfc5424 or auto")
 
     def run(self):
         self.server = eventlet.listen((self.bind, self.port))
@@ -263,15 +298,15 @@ class Syslog(BaseInput):
 
     def handle(self, sock, address):
         LOG.info("Accepted syslog connection from %r", address[0])
-        fileobj = sock.makefile('r')
+        fileobj = sock.makefile("r")
 
         for line in fileobj:
-            self.process_message(line.decode('utf8'), address[0])
+            self.process_message(line, address[0])
 
         LOG.info("%r closed connection to syslog", address[0])
 
     def process_message(self, line, peer):
-        line = line.rstrip('\r\n')
+        line = line.rstrip("\r\n")
 
         for regex in self.regexes:
             match = regex.match(line)
@@ -279,34 +314,33 @@ class Syslog(BaseInput):
                 continue
 
             message = match.groupdict()
-            message.setdefault('hostname', peer)
+            message.setdefault("hostname", peer)
 
-            prival = int(message.pop('prival'))
+            prival = int(message.pop("prival"))
             if prival <= 255:
-                message['facility'] = SYSLOG_FACILITIES[prival // 8]
-                message['severity'] = SYSLOG_PRIORITIES[prival % 8]
+                message["facility"] = SYSLOG_FACILITIES[prival // 8]
+                message["severity"] = SYSLOG_PRIORITIES[prival % 8]
 
-            structured_data = message.pop('sd', '-')
-            if structured_data != '-':
+            structured_data = message.pop("sd", "-")
+            if structured_data != "-":
                 # TODO(KvdV): Parse structured data
-                message['structured_data'] = structured_data
+                message["structured_data"] = structured_data
 
-            timestampstr = message.pop('timestamp', '-')
-            if timestampstr != '-':
-                if timestampstr.endswith('Z'):
+            timestampstr = message.pop("timestamp", "-")
+            if timestampstr != "-":
+                if timestampstr.endswith("Z"):
                     tz_offset = datetime.timedelta(0)
                     timestampstr = timestampstr[:-1]
                 else:
-                    direction = 1 if (timestampstr[-6] == '+') else -1
+                    direction = 1 if (timestampstr[-6] == "+") else -1
                     tz_offset = datetime.timedelta(
                         hours=direction * int(timestampstr[-5:-3]),
                         minutes=direction * int(timestampstr[-2:]),
                     )
                     timestampstr = timestampstr[:-6]
 
-                timestampstr = timestampstr.split('.')
-                timestamp = datetime.datetime.strptime(timestampstr[0],
-                                                       "%Y-%m-%dT%H:%M:%S")
+                timestampstr = timestampstr.split(".")
+                timestamp = datetime.datetime.strptime(timestampstr[0], "%Y-%m-%dT%H:%M:%S")
                 if len(timestampstr) == 2:
                     seconds = float("." + timestampstr[1])
                     timestamp += datetime.timedelta(seconds=seconds)
@@ -314,9 +348,9 @@ class Syslog(BaseInput):
                 if tz_offset:
                     timestamp += tz_offset
 
-                message['timestamp'] = timestamp
+                message["timestamp"] = timestamp
 
-            message['message'] = line[match.end():]
+            message["message"] = line[match.end() :]
 
             self.emit(message)
             return

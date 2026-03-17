@@ -22,6 +22,7 @@ import sys
 import time
 
 import eventlet
+
 eventlet.monkey_patch()
 
 import logshipper.pipeline
@@ -32,29 +33,28 @@ LOG = None
 
 def main():
     global LOG, ARGS
-    parser = argparse.ArgumentParser(
-        description="Processes log messages and sends them elsewhere")
+    parser = argparse.ArgumentParser(description="Processes log messages and sends them elsewhere")
 
-    parser.add_argument('pipeline', nargs='+',
-                        help='Where to find pipelines (*.yml files)')
+    parser.add_argument("pipeline", nargs="+", help="Where to find pipelines (*.yml files)")
 
-    parser.add_argument('--verbose', action='store_true')
-    parser.add_argument('--debug', action='store_true')
+    parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--debug", action="store_true")
 
     ARGS = parser.parse_args()
 
     if ARGS.debug:
-        log_level = 'DEBUG'
+        log_level = "DEBUG"
     elif ARGS.verbose:
-        log_level = 'INFO'
+        log_level = "INFO"
     else:
-        log_level = 'WARNING'
+        log_level = "WARNING"
 
     logging.basicConfig(level=log_level)
     LOG = logging.getLogger(__name__)
 
     pipeline_manager = logshipper.pipeline.PipelineManager(
-        [os.path.abspath(p) for p in ARGS.pipeline])
+        [os.path.abspath(p) for p in ARGS.pipeline]
+    )
 
     pipeline_manager.start()
 
@@ -67,49 +67,50 @@ def main():
 
 def ship_file():
     global LOG, ARGS
-    parser = argparse.ArgumentParser(
-        description="Processes log messages and sends them elsewhere")
+    parser = argparse.ArgumentParser(description="Processes log messages and sends them elsewhere")
 
-    parser.add_argument('--pipeline', required=True)
+    parser.add_argument("--pipeline", required=True)
 
-    parser.add_argument('--pipeline-path', action='append',
-                        help='Where to find pipelines (*.yml files)')
+    parser.add_argument(
+        "--pipeline-path", action="append", help="Where to find pipelines (*.yml files)"
+    )
 
-    parser.add_argument('file', nargs='+', help='File to ship')
+    parser.add_argument("file", nargs="+", help="File to ship")
 
-    parser.add_argument('--verbose', action='store_true')
-    parser.add_argument('--debug', action='store_true')
+    parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--debug", action="store_true")
 
     ARGS = parser.parse_args()
 
     if ARGS.debug:
-        log_level = 'DEBUG'
+        log_level = "DEBUG"
     elif ARGS.verbose:
-        log_level = 'INFO'
+        log_level = "INFO"
     else:
-        log_level = 'WARNING'
+        log_level = "WARNING"
 
     logging.basicConfig(level=log_level)
     LOG = logging.getLogger(__name__)
 
     pipeline_manager = logshipper.pipeline.PipelineManager(
-        [os.path.abspath(p) for p in ARGS.pipeline_path])
+        [os.path.abspath(p) for p in ARGS.pipeline_path]
+    )
 
     pipeline_manager.load_pipelines()
 
     for filename in ARGS.file:
         # Peek to detect gzip
-        with open(filename, 'rb') as f:
+        with open(filename, "rb") as f:
             header = f.read(16)
 
         if header[0:2] == b"\037\213":
-            print("Processing gzipped file %s" % filename)
+            print(("Processing gzipped file %s" % filename))
             file_handle = gzip.open(filename)
-        elif header[0:3] == b"\x42\x5A\x68":
-            print("Processing bz2'ed file %s" % filename)
+        elif header[0:3] == b"\x42\x5a\x68":
+            print(("Processing bz2'ed file %s" % filename))
             file_handle = bz2.BZ2File(filename)
         else:
-            print("Processing uncompressed file %s" % filename)
+            print(("Processing uncompressed file %s" % filename))
             file_handle = open(filename)
 
         with file_handle:
@@ -120,8 +121,7 @@ def ship_file():
                 lines += 1
                 line = line.rstrip("\r\n")
                 try:
-                    pipeline_manager.process({'message': line},
-                                             ARGS.pipeline)
+                    pipeline_manager.process({"message": line}, ARGS.pipeline)
                 except KeyboardInterrupt:
                     break
                 except Exception:
@@ -131,8 +131,7 @@ def ship_file():
 
                 if (time.time() - treport) > 1:
                     rate = lines / (time.time() - start_time)
-                    sys.stdout.write(
-                        "Processing %i lines, %4.1f/s\r" % (lines, rate))
+                    sys.stdout.write("Processing %i lines, %4.1f/s\r" % (lines, rate))
                     treport = time.time()
                 sys.stdout.flush()
 

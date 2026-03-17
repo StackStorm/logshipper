@@ -29,12 +29,12 @@ def json_default(value):
     else:
         return str(value)
 
+
 TRUE_VALUES = set([True, 1, "yes", "true", "on"])
 
 
 def to_bool(value):
-    return (value in TRUE_VALUES or
-            str(value).lower() in TRUE_VALUES)
+    return value in TRUE_VALUES or str(value).lower() in TRUE_VALUES
 
 
 def md5_hash(data):
@@ -65,31 +65,32 @@ def prepare_elasticsearch_http(parameters):
         ```http://localhost:9200/```.
     """
 
-    index = parameters.get('index', 'logshipper-{timestamp:%Y.%m.%d}')
+    index = parameters.get("index", "logshipper-{timestamp:%Y.%m.%d}")
     index = logshipper.context.prepare_template(index)
 
-    if 'id' in parameters:
-        id_ = logshipper.context.prepare_template(parameters['id']).interpolate
+    if "id" in parameters:
+        id_ = logshipper.context.prepare_template(parameters["id"]).interpolate
     else:
         id_ = None
 
-    doctype = parameters.get('doctype', 'log')
-    timestamp_field = parameters.get('timestamp', '@timestamp')
+    doctype = parameters.get("doctype", "log")
+    timestamp_field = parameters.get("timestamp", "@timestamp")
 
-    if 'document' in parameters:
-        document_template = logshipper.context.prepare_template(
-            parameters['document']).interpolate
-    elif timestamp_field != 'timestamp':
+    if "document" in parameters:
+        document_template = logshipper.context.prepare_template(parameters["document"]).interpolate
+    elif timestamp_field != "timestamp":
+
         def document_template(context):
             result = dict(context.message)
             result[timestamp_field] = result.pop("timestamp")
             return result
+
     else:
         document_template = lambda context: dict(context.message)
 
-    sort_keys = to_bool(parameters.get('sort_keys', False))
+    sort_keys = to_bool(parameters.get("sort_keys", False))
 
-    base_url = parameters.get('url', "http://localhost:9200/")
+    base_url = parameters.get("url", "http://localhost:9200/")
     if not base_url.endswith("/"):
         base_url += "/"
 
@@ -98,11 +99,14 @@ def prepare_elasticsearch_http(parameters):
     def handle_elasticsearch_http(message, context):
         document = document_template(context)
 
-        document = json.dumps(document, default=json_default,
-                              sort_keys=sort_keys).encode('utf8')
+        document = json.dumps(document, default=json_default, sort_keys=sort_keys).encode("utf8")
 
-        url = "%s%s/%s/%s" % (base_url, index.interpolate(context), doctype,
-                              id_(context) if id_ else md5_hash(document))
+        url = "%s%s/%s/%s" % (
+            base_url,
+            index.interpolate(context),
+            doctype,
+            id_(context) if id_ else md5_hash(document),
+        )
 
         result = session.put(url, data=document)
         result.raise_for_status()

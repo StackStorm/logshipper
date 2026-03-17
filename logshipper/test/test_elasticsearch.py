@@ -27,7 +27,7 @@ import logshipper.elasticsearch
 class Tests(unittest.TestCase):
 
     def test_elasticsearch_http(self):
-        class Foo():
+        class Foo:
             def __str__(self):
                 return "1235"
 
@@ -38,18 +38,22 @@ class Tests(unittest.TestCase):
         }
         context = logshipper.context.Context(message, None)
 
-        with mock.patch.object(requests.Session, 'put') as mock_method:
+        with mock.patch.object(requests.Session, "put") as mock_method:
             mock_method.return_value = mock.Mock()
             handler = logshipper.elasticsearch.prepare_elasticsearch_http(
-                {'id': "1", 'sort_keys': 1})
+                {"id": "1", "sort_keys": 1}
+            )
 
             handler(message, context)
 
             mock_method.assert_called_once_with(
-                'http://localhost:9200/logshipper-2008.10.19/log/1',
-                data=(b'{"@timestamp": "2008-10-19T14:40:00.000009", '
-                      b'"message": "This is a test.", '
-                      b'"set": "1235"}'))
+                "http://localhost:9200/logshipper-2008.10.19/log/1",
+                data=(
+                    b'{"@timestamp": "2008-10-19T14:40:00.000009", '
+                    b'"message": "This is a test.", '
+                    b'"set": "1235"}'
+                ),
+            )
 
     def test_elasticsearch_autoid(self):
         message = {
@@ -58,42 +62,50 @@ class Tests(unittest.TestCase):
         }
         context = logshipper.context.Context(message, None)
 
-        with mock.patch.object(requests.Session, 'put') as mock_method:
+        with mock.patch.object(requests.Session, "put") as mock_method:
             mock_method.return_value = mock.Mock()
-            handler = logshipper.elasticsearch.prepare_elasticsearch_http({
-                'sort_keys': 1,
-                'timestamp': "timestamp",
-            })
+            handler = logshipper.elasticsearch.prepare_elasticsearch_http(
+                {
+                    "sort_keys": 1,
+                    "timestamp": "timestamp",
+                }
+            )
 
             handler(message, context)
 
             mock_method.assert_called_once_with(
-                ('http://localhost:9200/logshipper-2008.10.19/log/'
-                 '184162c2c5d7e33406fcbb78ef1f968e'),
-                data=(b'{"message": "This is a test.", '
-                      b'"timestamp": "2008-10-19T14:40:00.000009"}'))
+                (
+                    "http://localhost:9200/logshipper-2008.10.19/log/"
+                    "184162c2c5d7e33406fcbb78ef1f968e"
+                ),
+                data=(
+                    b'{"message": "This is a test.", ' b'"timestamp": "2008-10-19T14:40:00.000009"}'
+                ),
+            )
 
     def test_elasticsearch_doc(self):
         message = {
             "message": "This is a test.",
             "timestamp": datetime.datetime(2008, 10, 19, 14, 40, 0, 9),
-            "the_id": 1
+            "the_id": 1,
         }
         context = logshipper.context.Context(message, None)
 
-        with mock.patch.object(requests.Session, 'put') as mock_method:
+        with mock.patch.object(requests.Session, "put") as mock_method:
             mock_method.return_value = mock.Mock()
-            handler = logshipper.elasticsearch.prepare_elasticsearch_http({
-                'sort_keys': 1,
-                "document": {"ma": "{message}"},
-                "url": "http://somehost",
-                "index": "foo-{timestamp:%Y-%m}",
-                "doctype": "test",
-                "id": "{the_id}"
-            })
+            handler = logshipper.elasticsearch.prepare_elasticsearch_http(
+                {
+                    "sort_keys": 1,
+                    "document": {"ma": "{message}"},
+                    "url": "http://somehost",
+                    "index": "foo-{timestamp:%Y-%m}",
+                    "doctype": "test",
+                    "id": "{the_id}",
+                }
+            )
 
             handler(message, context)
 
             mock_method.assert_called_once_with(
-                'http://somehost/foo-2008-10/test/1',
-                data=(b'{"ma": "This is a test."}'))
+                "http://somehost/foo-2008-10/test/1", data=(b'{"ma": "This is a test."}')
+            )

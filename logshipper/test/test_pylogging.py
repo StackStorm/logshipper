@@ -35,22 +35,22 @@ class Tests(unittest.TestCase):
         context = logshipper.context.Context(message, None)
 
         with tempfile.NamedTemporaryFile() as f:
-            handler = logshipper.pylogging.prepare_logging({
-                "handler": {
-                    'class': 'logging.FileHandler',
-                    'filename': f.name,
-                },
-                'formatter': {
-                    '()': 'logging.Formatter',
-                    'format': '%(asctime)s %(levelname)s %(name)s %(message)s',
-                    'datefmt': '%Y-%m-%d %H:%M:%S',
+            handler = logshipper.pylogging.prepare_logging(
+                {
+                    "handler": {
+                        "class": "logging.FileHandler",
+                        "filename": f.name,
+                    },
+                    "formatter": {
+                        "()": "logging.Formatter",
+                        "format": "%(asctime)s %(levelname)s %(name)s %(message)s",
+                        "datefmt": "%Y-%m-%d %H:%M:%S",
+                    },
                 }
-            })
+            )
 
             handler(message, context)
 
             logfile = f.read()
 
-            self.assertEqual(
-                logfile,
-                b"2008-10-19 14:40:00 INFO logshipper This is a test.\n")
+            self.assertEqual(logfile, b"2008-10-19 14:40:00 INFO logshipper This is a test.\n")

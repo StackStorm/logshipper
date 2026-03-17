@@ -28,10 +28,12 @@ LOG = logging.getLogger(__name__)
 
 class Notifier(pyinotify.Notifier):
 
-    def __init__(self, watch_manager, default_proc_fun=None, read_freq=0,
-                 threshold=0, timeout=None):
-        pyinotify.Notifier.__init__(self, watch_manager, default_proc_fun=None,
-                                    read_freq=0, threshold=0, timeout=None)
+    def __init__(
+        self, watch_manager, default_proc_fun=None, read_freq=0, threshold=0, timeout=None
+    ):
+        pyinotify.Notifier.__init__(
+            self, watch_manager, default_proc_fun=None, read_freq=0, threshold=0, timeout=None
+        )
 
         # We won't be using the pollobj
         self._pollobj.unregister(self._fd)

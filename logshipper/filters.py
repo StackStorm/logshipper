@@ -25,7 +25,7 @@ import logshipper.context
 
 SKIP_STEP = 1
 DROP_MESSAGE = 2
-TRUTH_VALUES = set(['1', 'true', 'yes', 'on'])
+TRUTH_VALUES = set(["1", "true", "yes", "on"])
 
 PHASE_MATCH = 10
 PHASE_MANIPULATE = 20
@@ -79,10 +79,16 @@ def prepare_match(parameters):
         parameters = {"message": parameters}
 
     regexes = [
-        (fieldname, ([re.compile(regex)]
-                     if isinstance(regex, six.string_types) else
-                     [re.compile(regex1) for regex1 in regex]))
-        for (fieldname, regex) in parameters.items()]
+        (
+            fieldname,
+            (
+                [re.compile(regex)]
+                if isinstance(regex, six.string_types)
+                else [re.compile(regex1) for regex1 in regex]
+            ),
+        )
+        for (fieldname, regex) in list(parameters.items())
+    ]
 
     def handle_match(message, context):
         matches = {}
@@ -99,7 +105,7 @@ def prepare_match(parameters):
             else:
                 return SKIP_STEP
 
-        for match in matches.values():
+        for match in list(matches.values()):
             message.update(match.groupdict())
 
         context.matches = matches
@@ -127,10 +133,9 @@ def prepare_extract(parameters):
     def handle_extract(message, context):
         result = matcher(message, context)
         if result != SKIP_STEP:
-            for field_name, match in context.matches.items():
+            for field_name, match in list(context.matches.items()):
                 base = message[field_name]
-                message[field_name] = "".join((base[:match.start()],
-                                               base[match.end():]))
+                message[field_name] = "".join((base[:match.start()], base[match.end():]))
         return result
 
     handle_extract.phase = PHASE_MATCH
@@ -153,9 +158,9 @@ def prepare_edge(parameters):
     if isinstance(parameters, six.string_types):
         parameters = {"trigger": parameters}
 
-    trigger = logshipper.context.prepare_template(parameters['trigger'])
+    trigger = logshipper.context.prepare_template(parameters["trigger"])
     queue = dict()
-    backlog = int(parameters.get('backlog', 1))
+    backlog = int(parameters.get("backlog", 1))
 
     def handle_edge(message, context):
         value = trigger.interpolate(context)
@@ -164,8 +169,7 @@ def prepare_edge(parameters):
             return SKIP_STEP
 
         if len(queue) >= backlog:
-            items = sorted((time, q_value)
-                           for (q_value, time) in queue.items())
+            items = sorted((time, q_value) for (q_value, time) in list(queue.items()))
             queue.pop(items[0][1])
 
         queue[value] = time.time()
@@ -186,11 +190,11 @@ def prepare_replace(parameters):
 
     def handle_replace(message, context):
         base = message[context.match_field]
-        for field_name, match in context.matches.items():
+        for field_name, match in list(context.matches.items()):
             base = message[field_name]
-            message[field_name] = "".join((base[:match.start()],
-                                           template.interpolate(context),
-                                           base[match.end():]))
+            message[field_name] = "".join(
+                (base[: match.start()], template.interpolate(context), base[match.end() :])
+            )
 
     return handle_replace
 
@@ -216,8 +220,10 @@ def prepare_set(parameters):
     """
     assert isinstance(parameters, dict)
 
-    parameters = [(key, logshipper.context.prepare_template(value))
-                  for (key, value) in parameters.items()]
+    parameters = [
+        (key, logshipper.context.prepare_template(value))
+        for (key, value) in list(parameters.items())
+    ]
 
     def handle_set(message, context):
         for fieldname, template in parameters:
@@ -237,14 +243,14 @@ def prepare_unset(parameters):
         - foo
     """
     if isinstance(parameters, six.string_types):
-        parameters = [parameter.strip()
-                      for parameter in parameters.split(",")]
+        parameters = [parameter.strip() for parameter in parameters.split(",")]
 
     assert isinstance(parameters, list)
 
     def handle_unset(message, context):
         for field in parameters:
             message.pop(field, None)
+
     return handle_unset
 
 
@@ -288,8 +294,8 @@ def prepare_python(parameters):
 
     def handle_python(message, context):
         namespace = {
-            'message': message,
-            'context': 'context',
+            "message": message,
+            "context": "context",
         }
         six.exec_(code, namespace)
 
@@ -326,15 +332,15 @@ def prepare_strptime(parameters):
             format: %b %d %H:%M:%S
     """
 
-    fieldname = parameters['field']
-    formatstring = parameters.get('format')
+    fieldname = parameters["field"]
+    formatstring = parameters.get("format")
 
     if formatstring:
         parse = lambda value: datetime.datetime.strptime(value, formatstring)
     else:
         import dateutil.parser
-        parse = lambda value: dateutil.parser.parse(
-            value, default=datetime.datetime.now())
+
+        parse = lambda value: dateutil.parser.parse(value, default=datetime.datetime.now())
 
     def handle_strptime(message, context):
         value = message[fieldname]
@@ -347,12 +353,14 @@ def prepare_strptime(parameters):
     return handle_strptime
 
 
-TIMEDELTA_REGEX = re.compile(r'^\s*'
-                             r'((?P<days>\d+(\.\d+)?)d\s*)?'
-                             r'((?P<hours>\d+(\.\d+)?)h\s*)?'
-                             r'((?P<minutes>\d+(\.\d+)?)m\s*)?'
-                             r'((?P<seconds>\d+(\.\d+)?)s)?'
-                             r'\s*$')
+TIMEDELTA_REGEX = re.compile(
+    r"^\s*"
+    r"((?P<days>\d+(\.\d+)?)d\s*)?"
+    r"((?P<hours>\d+(\.\d+)?)h\s*)?"
+    r"((?P<minutes>\d+(\.\d+)?)m\s*)?"
+    r"((?P<seconds>\d+(\.\d+)?)s)?"
+    r"\s*$"
+)
 
 
 def parse_timedelta(deltastr):
@@ -361,9 +369,7 @@ def parse_timedelta(deltastr):
     if not parts:
         raise ValueError("Invalid delta format: %s", deltastr)
 
-    args = dict((key, float(value)) for (key, value) in
-                parts.groupdict().items()
-                if value)
+    args = dict((key, float(value)) for (key, value) in list(parts.groupdict().items()) if value)
     return datetime.timedelta(**args)
 
 
@@ -377,7 +383,7 @@ def prepare_timewindow(parameters):
     """
     deltastr = parameters or "1m"
 
-    delta = deltastr.split('-', 1)
+    delta = deltastr.split("-", 1)
     if len(delta) == 1:
         upper_bound = parse_timedelta(delta[0])
         lower_bound = -upper_bound
@@ -386,7 +392,7 @@ def prepare_timewindow(parameters):
         upper_bound = parse_timedelta(delta[1])
 
     def handle_timewindow(message, context):
-        timestamp = message['timestamp']
+        timestamp = message["timestamp"]
         now = datetime.datetime.utcnow()
         delta = timestamp - now
         if delta < lower_bound or delta > upper_bound:

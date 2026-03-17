@@ -33,7 +33,7 @@ class Tests(unittest.TestCase):
         }
         context = logshipper.context.Context(message, None)
 
-        with mock.patch.object(sys.stdout, 'write') as mock_method:
+        with mock.patch.object(sys.stdout, "write") as mock_method:
             handler = logshipper.outputs.prepare_stdout({})
 
             handler(message, context)
@@ -47,17 +47,14 @@ class Tests(unittest.TestCase):
         }
         context = logshipper.context.Context(message, None)
 
-        with mock.patch.object(statsd.Client, '_send') as mock_method:
-            handler = logshipper.outputs.prepare_statsd({'name': "FOO",
-                                                         'host': '127.0.1.1'})
+        with mock.patch.object(statsd.Client, "_send") as mock_method:
+            handler = logshipper.outputs.prepare_statsd({"name": "FOO", "host": "127.0.1.1"})
 
             handler(message, context)
 
-            self.assertEqual(mock_method.call_args[0][1],
-                             {"FOO": '1|c'})
+            self.assertEqual(mock_method.call_args[0][1], {"FOO": "1|c"})
 
-            self.assertEqual(mock_method.call_args[0][0].connection._host,
-                             "127.0.1.1")
+            self.assertEqual(mock_method.call_args[0][0].connection._host, "127.0.1.1")
 
     def test_statsd_gauge(self):
         message = {
@@ -66,14 +63,12 @@ class Tests(unittest.TestCase):
         }
         context = logshipper.context.Context(message, None)
 
-        with mock.patch.object(statsd.Client, '_send') as mock_method:
-            handler = logshipper.outputs.prepare_statsd({'name': "FOO",
-                                                         "type": "gauge"})
+        with mock.patch.object(statsd.Client, "_send") as mock_method:
+            handler = logshipper.outputs.prepare_statsd({"name": "FOO", "type": "gauge"})
 
             handler(message, context)
 
-            self.assertEqual(mock_method.call_args[0][1],
-                             {"FOO": '1.0|g'})
+            self.assertEqual(mock_method.call_args[0][1], {"FOO": "1.0|g"})
 
     def test_statsd_timer(self):
         message = {
@@ -82,12 +77,11 @@ class Tests(unittest.TestCase):
         }
         context = logshipper.context.Context(message, None)
 
-        with mock.patch.object(statsd.Client, '_send') as mock_method:
-            handler = logshipper.outputs.prepare_statsd({'name': "FOO",
-                                                         "type": "timer",
-                                                         "multiplier": 0.1})
+        with mock.patch.object(statsd.Client, "_send") as mock_method:
+            handler = logshipper.outputs.prepare_statsd(
+                {"name": "FOO", "type": "timer", "multiplier": 0.1}
+            )
 
             handler(message, context)
 
-            self.assertEqual(mock_method.call_args[0][1],
-                             {"FOO": '100.00000000|ms'})
+            self.assertEqual(mock_method.call_args[0][1], {"FOO": "100.00000000|ms"})

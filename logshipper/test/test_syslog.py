@@ -37,16 +37,16 @@ class Syslog(unittest.TestCase):
         syslog = logshipper.input.Syslog()
         syslog.set_handler(handler)
 
-        syslog.process_message(u"<132>Foo", 'fakehost')
+        syslog.process_message("<132>Foo", "fakehost")
 
-        self.assertEqual(msg[0]['message'], "Foo")
-        self.assertEqual(msg[0]['facility'], "local0")
-        self.assertEqual(msg[0]['severity'], "warning")
-        self.assertEqual(msg[0]['hostname'], "fakehost")
+        self.assertEqual(msg[0]["message"], "Foo")
+        self.assertEqual(msg[0]["facility"], "local0")
+        self.assertEqual(msg[0]["severity"], "warning")
+        self.assertEqual(msg[0]["hostname"], "fakehost")
 
-        self.assertSetEqual(set(msg[0]),
-                            set(["message", "facility", "severity",
-                                 "hostname", "timestamp"]))
+        self.assertSetEqual(
+            set(msg[0]), set(["message", "facility", "severity", "hostname", "timestamp"])
+        )
 
     def test_rfc5424(self):
         msg = []
@@ -55,51 +55,64 @@ class Syslog(unittest.TestCase):
             LOG.debug("msg received: %r", m)
             msg.append(m)
 
-        syslog = logshipper.input.Syslog(protocol='rfc5424')
+        syslog = logshipper.input.Syslog(protocol="rfc5424")
         syslog.set_handler(handler)
 
         syslog.process_message(
-            u"<165>1 2003-10-11T22:14:15.003Z machine.example.com evntslog - "
-            u"ID47 [exampleSDID@32473 iut=\"3\" eventSource=\"Application\" "
-            u"eventID=\"1011\"] Actual event text", 'fakehost')
+            "<165>1 2003-10-11T22:14:15.003Z machine.example.com evntslog - "
+            'ID47 [exampleSDID@32473 iut="3" eventSource="Application" '
+            'eventID="1011"] Actual event text',
+            "fakehost",
+        )
         syslog.process_message(
-            u"<165>1 2003-10-11T22:14:15.003+01:00 - - - - - event text 1",
-            'fakehost')
+            "<165>1 2003-10-11T22:14:15.003+01:00 - - - - - event text 1", "fakehost"
+        )
         syslog.process_message(
-            u"<165>1 2003-10-11T22:14:15.003-01:00 - - - - - event text 2",
-            'fakehost')
+            "<165>1 2003-10-11T22:14:15.003-01:00 - - - - - event text 2", "fakehost"
+        )
 
-        self.assertEqual(msg[0]['message'], 'Actual event text')
+        self.assertEqual(msg[0]["message"], "Actual event text")
 
-        self.assertEqual(msg[0]['procid'], '-')
-        self.assertEqual(msg[0]['severity'], 'notice')
-        self.assertEqual(msg[0]['appname'], 'evntslog')
-        self.assertEqual(msg[0]['msgid'], 'ID47')
-        self.assertEqual(msg[0]['hostname'], 'machine.example.com')
-        self.assertEqual(msg[0]['facility'], 'local4')
-        self.assertEqual(msg[0]['timestamp'].year, 2003)
-        self.assertEqual(msg[0]['timestamp'].month, 10)
-        self.assertEqual(msg[0]['timestamp'].day, 11)
-        self.assertEqual(msg[0]['timestamp'].hour, 22)
-        self.assertEqual(msg[0]['timestamp'].minute, 14)
-        self.assertEqual(msg[0]['timestamp'].second, 15)
-        self.assertEqual(msg[0]['timestamp'].microsecond, 3000)
-        self.assertEqual(msg[0]['structured_data'],
-                         ('[exampleSDID@32473 iut="3" '
-                          'eventSource="Application" eventID="1011"]'))
+        self.assertEqual(msg[0]["procid"], "-")
+        self.assertEqual(msg[0]["severity"], "notice")
+        self.assertEqual(msg[0]["appname"], "evntslog")
+        self.assertEqual(msg[0]["msgid"], "ID47")
+        self.assertEqual(msg[0]["hostname"], "machine.example.com")
+        self.assertEqual(msg[0]["facility"], "local4")
+        self.assertEqual(msg[0]["timestamp"].year, 2003)
+        self.assertEqual(msg[0]["timestamp"].month, 10)
+        self.assertEqual(msg[0]["timestamp"].day, 11)
+        self.assertEqual(msg[0]["timestamp"].hour, 22)
+        self.assertEqual(msg[0]["timestamp"].minute, 14)
+        self.assertEqual(msg[0]["timestamp"].second, 15)
+        self.assertEqual(msg[0]["timestamp"].microsecond, 3000)
+        self.assertEqual(
+            msg[0]["structured_data"],
+            ('[exampleSDID@32473 iut="3" ' 'eventSource="Application" eventID="1011"]'),
+        )
         # self.assertEqual(
         #     msg[0]['exampleSDID@32473'],
         #     {'iut': "3",  'eventSource': "Application", 'eventID': "1011"})
 
-        self.assertSetEqual(set(msg[0]),
-                            set(["message", "facility", "severity",
-                                 "procid", "appname", 'structured_data',
-                                 'hostname', 'timestamp', 'msgid']))
+        self.assertSetEqual(
+            set(msg[0]),
+            set(
+                [
+                    "message",
+                    "facility",
+                    "severity",
+                    "procid",
+                    "appname",
+                    "structured_data",
+                    "hostname",
+                    "timestamp",
+                    "msgid",
+                ]
+            ),
+        )
 
-        self.assertEqual(msg[1]['timestamp'],
-                         datetime.datetime(2003, 10, 11, 23, 14, 15, 3000))
-        self.assertEqual(msg[2]['timestamp'],
-                         datetime.datetime(2003, 10, 11, 21, 14, 15, 3000))
+        self.assertEqual(msg[1]["timestamp"], datetime.datetime(2003, 10, 11, 23, 14, 15, 3000))
+        self.assertEqual(msg[2]["timestamp"], datetime.datetime(2003, 10, 11, 21, 14, 15, 3000))
 
     def test_autorfc(self):
         msg = []
@@ -111,13 +124,13 @@ class Syslog(unittest.TestCase):
         syslog = logshipper.input.Syslog()
         syslog.set_handler(handler)
 
-        syslog.process_message(u"<132>Foo", "fakehost")
+        syslog.process_message("<132>Foo", "fakehost")
         syslog.process_message(
-            u"<165>1 2003-10-11T22:14:15.003Z - - - - - Actual event text",
-            "fakehost")
+            "<165>1 2003-10-11T22:14:15.003Z - - - - - Actual event text", "fakehost"
+        )
 
-        self.assertEqual(msg[0]['message'], "Foo")
-        self.assertEqual(msg[1]['message'], 'Actual event text')
+        self.assertEqual(msg[0]["message"], "Foo")
+        self.assertEqual(msg[1]["message"], "Actual event text")
 
     def test_socket(self):
         msg = []
@@ -134,10 +147,10 @@ class Syslog(unittest.TestCase):
         eventlet.sleep(0.01)
 
         c = socket.socket()
-        c.connect(('127.0.0.1', port))
-        c.sendall(b'<73>Hello\n')
+        c.connect(("127.0.0.1", port))
+        c.sendall(b"<73>Hello\n")
         c.close()
         eventlet.sleep(0.01)
 
         self.assertEqual(len(msg), 1)
-        self.assertEqual(msg[0]['message'], 'Hello')
+        self.assertEqual(msg[0]["message"], "Hello")

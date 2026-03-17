@@ -74,45 +74,37 @@ def prepare_logging(parameters):
 
     assert isinstance(parameters, dict)
 
-    name = logshipper.context.prepare_template(
-        parameters.pop('name', 'logshipper'))
+    name = logshipper.context.prepare_template(parameters.pop("name", "logshipper"))
 
-    level = logshipper.context.prepare_template(
-        parameters.pop('level', logging.INFO))
+    level = logshipper.context.prepare_template(parameters.pop("level", logging.INFO))
 
-    pathname = logshipper.context.prepare_template(
-        parameters.pop('pathname', None))
+    pathname = logshipper.context.prepare_template(parameters.pop("pathname", None))
 
-    lineno = logshipper.context.prepare_template(
-        parameters.pop('lineno', None))
+    lineno = logshipper.context.prepare_template(parameters.pop("lineno", None))
 
-    func = logshipper.context.prepare_template(parameters.pop('func', None))
-    msg = logshipper.context.prepare_template(
-        parameters.pop('msg', '{message}'))
+    func = logshipper.context.prepare_template(parameters.pop("func", None))
+    msg = logshipper.context.prepare_template(parameters.pop("msg", "{message}"))
 
     configurator = logging.config.DictConfigurator({})
 
     parameters = configurator.convert(parameters)
 
-    filters = [configurator.configure_filter(f)
-               for f in parameters.get('filters', [])]
+    filters = [configurator.configure_filter(f) for f in parameters.get("filters", [])]
 
-    formatter = configurator.configure_formatter(
-        parameters.get('formatter', {}))
+    formatter = configurator.configure_formatter(parameters.get("formatter", {}))
 
     # Now mangle the parameters to match the dictformat
-    parameters['handler']['formatter'] = "formatter"
-    parameters['handler']['filters'] = [str(idx) for (idx, _)
-                                        in enumerate(filters)]
+    parameters["handler"]["formatter"] = "formatter"
+    parameters["handler"]["filters"] = [str(idx) for (idx, _) in enumerate(filters)]
 
-    configurator.config['formatters'] = {
+    configurator.config["formatters"] = {
         "formatter": formatter,
     }
-    configurator.config["filters"] = dict((str(idx), filter_)
-                                          for (idx, filter_)
-                                          in enumerate(filters))
+    configurator.config["filters"] = dict(
+        (str(idx), filter_) for (idx, filter_) in enumerate(filters)
+    )
 
-    handler = configurator.configure_handler(parameters['handler'])
+    handler = configurator.configure_handler(parameters["handler"])
 
     def handle_logging(message, context):
         line = lineno.interpolate(context)
@@ -126,11 +118,12 @@ def prepare_logging(parameters):
             msg=msg.interpolate(context),
             args=context.backreferences[1:],
             exc_info=None,
-            func=func)
+            func=func,
+        )
 
-        record.created = time.mktime(message.pop('timestamp').timetuple())
+        record.created = time.mktime(message.pop("timestamp").timetuple())
 
-        for key, value in message.items():
+        for key, value in list(message.items()):
             if not hasattr(record, key):
                 setattr(record, key, value)
 

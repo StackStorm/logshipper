@@ -7,3 +7,4 @@ pyyaml
 pytz
 requests
 six
+setuptools==80.10.2

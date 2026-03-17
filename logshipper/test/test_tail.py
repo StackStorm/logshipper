@@ -32,7 +32,7 @@ class Tail(unittest.TestCase):
         messages = []
 
         def message_handler(m):
-            LOG.debug('event generated %s', m['message'])
+            LOG.debug("event generated %s", m["message"])
             messages.append(m)
 
         with tempfile.NamedTemporaryFile() as f:
@@ -57,7 +57,7 @@ class Tail(unittest.TestCase):
         messages = []
 
         def message_handler(m):
-            LOG.debug('event generated %s', m['message'])
+            LOG.debug("event generated %s", m["message"])
             messages.append(m)
 
         try:
@@ -68,19 +68,18 @@ class Tail(unittest.TestCase):
             eventlet.sleep(0.01)  # give thread a chance to open the file
 
             LOG.debug("about to write line 1")
-            with open(path + "/test.log", 'w') as f:
+            with open(path + "/test.log", "w") as f:
                 f.write("line 1\n")
 
             eventlet.sleep(0.01)  # give thread a chance to read the line
             self.assertEqual(messages, [{"message": "line 1"}])
 
             LOG.debug("about to write line 2")
-            with open(path + "/test.log", 'a') as f:
+            with open(path + "/test.log", "a") as f:
                 f.write("line 2\n")
 
             eventlet.sleep(0.01)  # give thread a chance to read the line
-            self.assertEqual(messages, [{"message": "line 1"},
-                                        {"message": "line 2"}])
+            self.assertEqual(messages, [{"message": "line 1"}, {"message": "line 2"}])
 
             tail.stop()
             eventlet.sleep(0.1)  # give thread a chance to close the line

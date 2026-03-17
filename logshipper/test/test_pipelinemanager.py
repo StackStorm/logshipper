@@ -27,17 +27,16 @@ import eventlet
 import logshipper.input
 import logshipper.pipeline
 
-
 LOG = logging.getLogger(__name__)
 
 
 class TestInput(logshipper.input.BaseInput):
-    testmessage = {'message': u'gen1', 'hostname': None,
-                   "timestamp": datetime.datetime.now()}
+    testmessage = {"message": "gen1", "hostname": None, "timestamp": datetime.datetime.now()}
 
     def run(self):
         LOG.debug("Emitting %r", self.testmessage)
         self.emit(dict(self.testmessage))
+
 
 msg_history = []
 
@@ -47,6 +46,7 @@ def pipe_handler(params):
 
     def handle(message, context):
         msg_history.append(message)
+
     return handle
 
 
@@ -61,14 +61,10 @@ class Tests(unittest.TestCase):
 
     def test_load(self):
         pipeline = {
-            "inputs": {
-                'test_pipelinemanager:TestInput': {}
-            },
-            "steps": [
-                {'test_pipelinemanager:pipe_handler': {}}
-            ]
+            "inputs": {"test_pipelinemanager:TestInput": {}},
+            "steps": [{"test_pipelinemanager:pipe_handler": {}}],
         }
-        with open(self.path + "/test1.yml", 'w') as f:
+        with open(self.path + "/test1.yml", "w") as f:
             json.dump(pipeline, f)
 
         mgr = logshipper.pipeline.PipelineManager([self.path + "/*.yml"])
@@ -77,24 +73,20 @@ class Tests(unittest.TestCase):
         eventlet.sleep()
 
         self.assertEqual(msg_history, [])
-        mgr.process({'message': "Test"}, 'test1')
-        self.assertEqual(msg_history, [{'message': "Test"}])
+        mgr.process({"message": "Test"}, "test1")
+        self.assertEqual(msg_history, [{"message": "Test"}])
 
     def test_late_load(self):
         pipeline = {
-            "inputs": {
-                'test_pipelinemanager:TestInput': {}
-            },
-            "steps": [
-                {'test_pipelinemanager:pipe_handler': {}}
-            ]
+            "inputs": {"test_pipelinemanager:TestInput": {}},
+            "steps": [{"test_pipelinemanager:pipe_handler": {}}],
         }
 
         mgr = logshipper.pipeline.PipelineManager([self.path + "/*.yml"])
 
         mgr.start()
         eventlet.sleep(0.1)
-        with open(self.path + "/test1.yml", 'w') as f:
+        with open(self.path + "/test1.yml", "w") as f:
             json.dump(pipeline, f)
         LOG.debug("Just modified")
         eventlet.sleep(0.1)
@@ -105,39 +97,30 @@ class Tests(unittest.TestCase):
 
     def test_modify(self):
         pipeline = {
-            "inputs": {
-                'test_pipelinemanager:TestInput': {}
-            },
-            "steps": [
-                {'test_pipelinemanager:pipe_handler': {}}
-            ]
+            "inputs": {"test_pipelinemanager:TestInput": {}},
+            "steps": [{"test_pipelinemanager:pipe_handler": {}}],
         }
-        with open(self.path + "/test1.yml", 'w') as f:
+        with open(self.path + "/test1.yml", "w") as f:
             json.dump(pipeline, f)
 
         mgr = logshipper.pipeline.PipelineManager([self.path + "/*.yml"])
 
         mgr.start()
         eventlet.sleep(0.01)
-        with open(self.path + "/test1.yml", 'w') as f:
+        with open(self.path + "/test1.yml", "w") as f:
             json.dump(pipeline, f)
 
         eventlet.sleep(0.01)
         mgr.stop()
 
-        self.assertEqual(msg_history, [TestInput.testmessage,
-                                       TestInput.testmessage])
+        self.assertEqual(msg_history, [TestInput.testmessage, TestInput.testmessage])
 
     def test_delete(self):
         pipeline = {
-            "inputs": {
-                'test_pipelinemanager:TestInput': {}
-            },
-            "steps": [
-                {'test_pipelinemanager:pipe_handler': {}}
-            ]
+            "inputs": {"test_pipelinemanager:TestInput": {}},
+            "steps": [{"test_pipelinemanager:pipe_handler": {}}],
         }
-        with open(self.path + "/test1.yml", 'w') as f:
+        with open(self.path + "/test1.yml", "w") as f:
             json.dump(pipeline, f)
 
         mgr = logshipper.pipeline.PipelineManager([self.path + "/*.yml"])
@@ -148,6 +131,6 @@ class Tests(unittest.TestCase):
         eventlet.sleep(0.01)
 
         with self.assertRaises(Exception):  # noqa
-            mgr.process({}, 'test1')
+            mgr.process({}, "test1")
 
         mgr.stop()

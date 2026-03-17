@@ -20,9 +20,11 @@ import six
 
 
 def _template_code(template):
-    if (template in (True, False, None) or
-            isinstance(template, six.integer_types) or
-            isinstance(template, float)):
+    if (
+        template in (True, False, None)
+        or isinstance(template, six.integer_types)
+        or isinstance(template, float)
+    ):
         return {}, repr(template)
 
     if isinstance(template, six.string_types):
@@ -44,7 +46,7 @@ def _template_code(template):
         result = ["{"]
         namespace = {}
 
-        for key, value in template.items():
+        for key, value in list(template.items()):
             sub_namespace, value_code = _template_code(value)
             result.append("%r:%s," % (key, value_code))
             namespace.update(sub_namespace)
@@ -83,44 +85,41 @@ def _template_code_string(template):
 
             if conversion:
                 namespace["fmt"] = fmt
-                value_code = "fmt.convert_field(%s, %r)" % (value_code,
-                                                            conversion)
+                value_code = "fmt.convert_field(%s, %r)" % (value_code, conversion)
 
             if not format_spec:
                 result.append("str(%s)" % value_code)
-            elif '{' in format_spec:
+            elif "{" in format_spec:
                 namespace["fmt"] = fmt
-                result.append("format(%s, fmt.vformat(%r, args, kwargs))" %
-                              (value_code, format_spec))
+                result.append(
+                    "format(%s, fmt.vformat(%r, args, kwargs))" % (value_code, format_spec)
+                )
             else:
                 result.append("format(%s, %r)\n" % (value_code, format_spec))
 
     if not result:
-        return namespace, "\"\""
+        return namespace, '""'
     if len(result) == 1:
         return namespace, result[0]
 
-    return namespace, "\"\".join([%s])" % (", ".join(result))
+    return namespace, '"".join([%s])' % (", ".join(result))
 
 
 def prepare_template(template):
     namespace, code = _template_code(template)
 
-    result = ("def template(args, kwargs):\n"
-              "  return %s" % code)
+    result = "def template(args, kwargs):\n" "  return %s" % code
 
     six.exec_(result, namespace)
 
     func = namespace["template"]
-    func.interpolate = lambda context: func(context.backreferences,
-                                            context.message)
+    func.interpolate = lambda context: func(context.backreferences, context.message)
 
     return func
 
 
 class Context(object):
-    __slots__ = ['pipeline_manager', 'message', 'match', 'match_field',
-                 'backreferences', 'matches']
+    __slots__ = ["pipeline_manager", "message", "match", "match_field", "backreferences", "matches"]
 
     def __init__(self, message, pipeline_manager):
         self.pipeline_manager = pipeline_manager

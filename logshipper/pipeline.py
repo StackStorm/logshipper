@@ -31,16 +31,16 @@ import logshipper.pyinotify_eventlet_notifier
 LOG = logging.getLogger(__name__)
 
 FILTER_FACTORIES = dict(
-    (entrypoint.name, entrypoint) for entrypoint in
-    pkg_resources.iter_entry_points("logshipper.filters")
+    (entrypoint.name, entrypoint)
+    for entrypoint in pkg_resources.iter_entry_points("logshipper.filters")
 )
 OUTPUT_FACTORIES = dict(
-    (entrypoint.name, entrypoint) for entrypoint in
-    pkg_resources.iter_entry_points("logshipper.outputs")
+    (entrypoint.name, entrypoint)
+    for entrypoint in pkg_resources.iter_entry_points("logshipper.outputs")
 )
 INPUT_FACTORIES = dict(
-    (entrypoint.name, entrypoint) for entrypoint in
-    pkg_resources.iter_entry_points("logshipper.inputs")
+    (entrypoint.name, entrypoint)
+    for entrypoint in pkg_resources.iter_entry_points("logshipper.inputs")
 )
 
 PIPELINE_POOL = eventlet.greenpool.GreenPool()
@@ -49,7 +49,7 @@ PIPELINE_POOL = eventlet.greenpool.GreenPool()
 def prepare_input(klass, params, processfn):
     entrypoint = INPUT_FACTORIES.get(klass)
     if not entrypoint:
-        entrypoint = pkg_resources.EntryPoint.parse('X=' + klass)
+        entrypoint = pkg_resources.EntryPoint.parse("X=" + klass)
     filter_factory = entrypoint.load(require=False)
     input_ = filter_factory(**(params or {}))
     input_.set_handler(processfn)
@@ -57,8 +57,9 @@ def prepare_input(klass, params, processfn):
 
 
 def prepare_step(step_config):
-    sequence = [prepare_action(stepname, parameters)
-                for (stepname, parameters) in step_config.items()]
+    sequence = [
+        prepare_action(stepname, parameters) for (stepname, parameters) in list(step_config.items())
+    ]
 
     sequence.sort(key=lambda action: action.phase)
 
@@ -74,14 +75,14 @@ def prepare_action(name, parameters):
         default_phase = filters.PHASE_FORWARD
 
     if not entrypoint:
-        entrypoint = pkg_resources.EntryPoint.parse('X=' + name)
+        entrypoint = pkg_resources.EntryPoint.parse("X=" + name)
         default_phase = filters.PHASE_FORWARD - 1
 
     filter_factory = entrypoint.load(require=False)
     handler = filter_factory(parameters)
     assert handler, "Did you forget to actually return the handler?"
 
-    if not hasattr(handler, 'phase'):
+    if not hasattr(handler, "phase"):
         handler.phase = default_phase
 
     return handler
@@ -95,20 +96,21 @@ class Pipeline(object):
         self.started = False
 
     def update(self, pipeline_yaml):
-        pipeline = yaml.load(pipeline_yaml)
+        pipeline = yaml.load(pipeline_yaml, yaml.loader.FullLoader)
         started = self.started
         if started:
             self.stop()
 
-        self.steps = [prepare_step(step) for step in pipeline.get('steps', [])]
+        self.steps = [prepare_step(step) for step in pipeline.get("steps", [])]
 
-        input_config = pipeline.get('inputs', [])
+        input_config = pipeline.get("inputs", [])
         if isinstance(input_config, dict):
-            input_config = input_config.items()
+            input_config = list(input_config.items())
         else:
-            input_config = sum((config.items() for config in input_config), [])
-        self.inputs = [prepare_input(klass, params, self.process_in_eventlet)
-                       for klass, params in input_config]
+            input_config = sum((list(config.items()) for config in input_config), [])
+        self.inputs = [
+            prepare_input(klass, params, self.process_in_eventlet) for klass, params in input_config
+        ]
         if started:
             self.start()
 
@@ -123,9 +125,9 @@ class Pipeline(object):
             input_.stop()
 
     def process_in_eventlet(self, message):
-        assert 'timestamp' in message
-        assert 'hostname' in message
-        assert 'message' in message
+        assert "timestamp" in message
+        assert "hostname" in message
+        assert "message" in message
         PIPELINE_POOL.spawn_n(self.process, message)
 
     def process(self, message):
@@ -149,17 +151,19 @@ class PipelineManager(object):
         self.recursion_depth = 0
 
         self.watch_manager = pyinotify.WatchManager()
-        flags = (pyinotify.IN_CLOSE_WRITE | pyinotify.IN_DELETE |
-                 pyinotify.IN_DELETE_SELF | pyinotify.IN_MOVED_TO |
-                 pyinotify.IN_MOVED_FROM)
+        flags = (
+            pyinotify.IN_CLOSE_WRITE
+            | pyinotify.IN_DELETE
+            | pyinotify.IN_DELETE_SELF
+            | pyinotify.IN_MOVED_TO
+            | pyinotify.IN_MOVED_FROM
+        )
 
         for path in set(os.path.dirname(pathglob) for pathglob in self.globs):
             LOG.debug("Adding path for FS monitoring: %r ", path)
-            self.watch_manager.add_watch(path, flags,
-                                         proc_fun=self._inotified)
+            self.watch_manager.add_watch(path, flags, proc_fun=self._inotified)
 
-        self.notifier = logshipper.pyinotify_eventlet_notifier.Notifier(
-            self.watch_manager)
+        self.notifier = logshipper.pyinotify_eventlet_notifier.Notifier(self.watch_manager)
         self.thread = None
         self.should_run = False
 
@@ -191,18 +195,16 @@ class PipelineManager(object):
         except Exception:  # pragma: nocover
             LOG.exception("Pipeline manager main loop crashed")
         finally:
-            pipelines = self.pipelines.values()
+            pipelines = list(self.pipelines.values())
             self.pipelines = {}
             for pipeline in pipelines:
                 pipeline.stop()
 
     def _inotified(self, event):
-        if not any(fnmatch.fnmatch(event.pathname, pattern)
-                   for pattern in self.globs):
+        if not any(fnmatch.fnmatch(event.pathname, pattern) for pattern in self.globs):
             return
 
-        LOG.info("Filesystem change detected %s %r",
-                 event.maskname, event.pathname)
+        LOG.info("Filesystem change detected %s %r", event.maskname, event.pathname)
 
         name = os.path.splitext(os.path.basename(event.pathname))[0]
 
@@ -215,7 +217,7 @@ class PipelineManager(object):
                 pipeline.stop()
 
     def load_pipeline(self, path):
-        name = os.path.basename(path).rsplit('.', 1)[0]
+        name = os.path.basename(path).rsplit(".", 1)[0]
         try:
             pipeline = self.pipelines[name]
             LOG.info("Reloading pipeline %s", name)
@@ -223,7 +225,7 @@ class PipelineManager(object):
             pipeline = self.pipelines[name] = Pipeline(self)
             LOG.info("Loading pipeline %s", name)
 
-        with open(path, 'r') as yaml_file:
+        with open(path, "r") as yaml_file:
             try:
                 pipeline.update(yaml_file.read())
             except Exception:  # pragma: nocover

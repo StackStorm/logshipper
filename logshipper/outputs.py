@@ -42,32 +42,32 @@ def prepare_rabbitmq(parameters):
 
     conn_parameters = pika.connection.ConnectionParameters(
         credentials=pika.PlainCredentials(
-            parameters.get('username', 'guest'),
-            parameters.get('password', 'guest')),
-        host=parameters.get('host', '127.0.0.1'),
-        port=int(parameters.get('port', 5672))
+            parameters.get("username", "guest"), parameters.get("password", "guest")
+        ),
+        host=parameters.get("host", "127.0.0.1"),
+        port=int(parameters.get("port", 5672)),
     )
 
     connection = pika.adapters.BlockingConnection(conn_parameters)
     channel = connection.channel()
 
-    exchange = parameters.get('exchange', "logshipper")
-    queue = parameters.get('queue', "logshipper")
-    key = parameters.get('key', "logshipper")
+    exchange = parameters.get("exchange", "logshipper")
+    queue = parameters.get("queue", "logshipper")
+    key = parameters.get("key", "logshipper")
 
-    channel.queue_declare(queue=queue, durable=False,
-                          arguments={'x-ha-policy': 'all'})
+    channel.queue_declare(queue=queue, durable=False, arguments={"x-ha-policy": "all"})
 
     channel.exchange_declare(exchange=exchange, durable=False)
     channel.queue_bind(exchange=exchange, queue=queue, routing_key=key)
 
     def handle_rabbitmq(message, context):
-        channel.basic_publish(exchange=exchange, routing_key=key,
-                              body=json.dumps(message),
-                              properties=pika.BasicProperties(
-                                  content_type='text/json',
-                                  delivery_mode=1
-                              ))
+        channel.basic_publish(
+            exchange=exchange,
+            routing_key=key,
+            body=json.dumps(message),
+            properties=pika.BasicProperties(content_type="text/json", delivery_mode=1),
+        )
+
     return handle_rabbitmq
 
 
@@ -116,33 +116,30 @@ def prepare_statsd(parameters):
     import statsd  # noqa
 
     statsd_connection = statsd.Connection(
-        host=parameters.get('host', '127.0.0.1'),
-        port=int(parameters.get('port', 8125)),
-        sample_rate=float(parameters.get('sample_rate', 1.0)),
+        host=parameters.get("host", "127.0.0.1"),
+        port=int(parameters.get("port", 8125)),
+        sample_rate=float(parameters.get("sample_rate", 1.0)),
     )
 
-    meter_type = parameters.get('type', 'counter')
-    name_template = logshipper.context.prepare_template(parameters['name'])
-    val_template = logshipper.context.prepare_template(
-        parameters.get('value', 1))
-    multiplier = float(parameters.get('multiplier', 1.0))
+    meter_type = parameters.get("type", "counter")
+    name_template = logshipper.context.prepare_template(parameters["name"])
+    val_template = logshipper.context.prepare_template(parameters.get("value", 1))
+    multiplier = float(parameters.get("multiplier", 1.0))
 
-    if meter_type == 'counter':
-        statsd_client = statsd.Counter(parameters.get('prefix'),
-                                       statsd_connection)
+    if meter_type == "counter":
+        statsd_client = statsd.Counter(parameters.get("prefix"), statsd_connection)
         delta = True
-    elif meter_type == 'gauge':
-        statsd_client = statsd.Gauge(parameters.get('prefix'),
-                                     statsd_connection)
+    elif meter_type == "gauge":
+        statsd_client = statsd.Gauge(parameters.get("prefix"), statsd_connection)
         delta_str = str(parameters.get("delta", False)).lower()
         delta = delta_str in filters.TRUTH_VALUES
-    elif meter_type == 'timer':
-        statsd_client = statsd.Timer(parameters.get('prefix'),
-                                     statsd_connection)
+    elif meter_type == "timer":
+        statsd_client = statsd.Timer(parameters.get("prefix"), statsd_connection)
         delta = False
     else:
-        raise ValueError("Unknown meter type, should be one of counter, "
-                         "gauge or timer")  # pragma: nocover
+        raise ValueError(
+            "Unknown meter type, should be one of counter, " "gauge or timer"
+        )  # pragma: nocover
 
     def handle_statsd(message, context):
         name = name_template.interpolate(context)
@@ -165,8 +162,11 @@ def prepare_stdout(parameters):
 
         stdout: "{date}: {message}"
     """
-    line_format = (parameters if isinstance(parameters, six.string_types)
-                   else parameters.get("format", "{message}"))
+    line_format = (
+        parameters
+        if isinstance(parameters, six.string_types)
+        else parameters.get("format", "{message}")
+    )
     line_format = line_format.rstrip("\n\r") + "\n"
     format_template = logshipper.context.prepare_template(line_format)
     import sys
@@ -210,8 +210,9 @@ def prepare_jump(parameters):
 
         jump: my_pipeline
     """
-    pipeline_name = (parameters if isinstance(parameters, six.string_types)
-                     else parameters.get("pipeline"))
+    pipeline_name = (
+        parameters if isinstance(parameters, six.string_types) else parameters.get("pipeline")
+    )
     if not pipeline_name:
         raise ValueError("parameter pipeline required")
 
@@ -235,14 +236,14 @@ def prepare_fork(parameters):
 
         fork: my_pipeline
     """
-    pipeline_name = (parameters if isinstance(parameters, six.string_types)
-                     else parameters.get("pipeline"))
+    pipeline_name = (
+        parameters if isinstance(parameters, six.string_types) else parameters.get("pipeline")
+    )
     if not pipeline_name:
         raise ValueError("parameter pipeline required")
 
     def handle_fork(message, context):
-        context.pipeline_manager.process_in_eventlet(dict(message),
-                                                     pipeline_name)
+        context.pipeline_manager.process_in_eventlet(dict(message), pipeline_name)
 
     return handle_fork
 
@@ -261,8 +262,9 @@ def prepare_call(parameters):
 
         call: my_pipeline
     """
-    pipeline_name = (parameters if isinstance(parameters, six.string_types)
-                     else parameters.get("pipeline"))
+    pipeline_name = (
+        parameters if isinstance(parameters, six.string_types) else parameters.get("pipeline")
+    )
     if not pipeline_name:
         raise ValueError("parameter pipeline required")
 
